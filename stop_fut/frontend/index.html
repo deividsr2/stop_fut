@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StopFut - Adedonha do Futebol</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Header / Barra Superior -->
+  <header class="header">
+    <div class="logo-container">
+      <div class="logo-icon">⚽</div>
+      <div class="logo-text">
+        <h1>STOP<span>FUT</span></h1>
+        <p>A Adedonha Oficial dos Craques</p>
+      </div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-badge">
+        <span class="stat-label">RODADA</span>
+        <span class="stat-val" id="round-num">1</span>
+      </div>
+      <div class="stat-badge score-badge">
+        <span class="stat-label">PONTOS</span>
+        <span class="stat-val" id="total-score">0</span>
+      </div>
+      <div class="stat-badge aws-badge" title="Conectado ao AWS Emulator Local">
+        <span class="stat-label">INFRA</span>
+        <span class="stat-val aws-indicator">AWS LOCAL 🟢</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Container Principal -->
+  <main class="container">
+
+    <!-- Tela Inicial / Pré-jogo -->
+    <section id="start-screen" class="card hero-card">
+      <div class="trophy-hero">🏆</div>
+      <h2>Prepare-se para o Jogo!</h2>
+      <p class="subtitle">Desafie seus conhecimentos de futebol: clubes, craques, estádios e posições táticas específicas de cada time!</p>
+      
+      <div class="rules-box">
+        <h3>📋 Como Funciona:</h3>
+        <ul>
+          <li>Uma <strong>letra</strong> será sorteada aleatoriamente a cada rodada.</li>
+          <li>Responda categorias como <em>"Lateral Esquerdo do Flamengo"</em>, <em>"Clube"</em>, <em>"Estádio"</em>.</li>
+          <li>Quando terminar, aperte <strong>STOP!</strong> antes do tempo acabar.</li>
+          <li>O <strong>Agente Árbitro (VAR)</strong> valida suas respostas no <strong>Amazon DynamoDB</strong> local!</li>
+        </ul>
+      </div>
+
+      <button id="btn-start" class="btn btn-primary btn-large">
+        INICIAR PARTIDA ⚽
+      </button>
+    </section>
+
+    <!-- Tela da Partida (Game Arena) -->
+    <section id="game-screen" class="game-arena hidden">
+      <!-- Painel de Informações da Rodada -->
+      <div class="round-panel">
+        <div class="letter-box">
+          <span class="letter-sub">LETRA DA VEZ</span>
+          <div class="letter-display" id="current-letter">-</div>
+        </div>
+
+        <div class="timer-box">
+          <div class="timer-circle">
+            <span id="timer-val">60</span>
+            <small>SEG</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grade de Categorias -->
+      <div class="categories-grid" id="categories-container">
+        <!-- Gerado dinamicamente via JS -->
+      </div>
+
+      <!-- Botão STOP -->
+      <div class="stop-action-bar">
+        <button id="btn-stop" class="btn btn-stop">
+          🚨 STOP! (ENCERRAR RODADA)
+        </button>
+      </div>
+    </section>
+
+    <!-- Modal / Tela de Resultados do VAR -->
+    <section id="results-modal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="var-badge">🖥️ VAR EM AÇÃO</div>
+          <h2>Decisão da Arbitragem</h2>
+          <p id="round-summary-text">Validando respostas contra o banco DynamoDB...</p>
+        </div>
+
+        <div class="results-list" id="results-list">
+          <!-- Itens avaliados pelo agente -->
+        </div>
+
+        <div class="modal-footer">
+          <div class="round-score-box">
+            <span>Pontos nesta rodada:</span>
+            <strong id="round-points-earned">+0</strong>
+          </div>
+          <button id="btn-next-round" class="btn btn-primary">
+            PRÓXIMA RODADA ➡️
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Rodapé -->
+  <footer class="footer">
+    <div class="infra-footer">
+      <span>☁️ Powered by <strong>AWS Emulator Oficial</strong> (DynamoDB + S3 Static Hosting)</span>
+      <span>•</span>
+      <span>🤖 Validação com <strong>AI Agent Referee</strong></span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
