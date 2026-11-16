@@ -320,21 +320,19 @@ def lambda_handler(event, context):
     """
     Entrada oficial para execução Serverless no AWS Lambda Function URL.
     Compatível com Payload Format Version 2.0 e 1.0.
+    Nota: O CORS é gerenciado na borda pela configuração da Function URL da AWS.
+    Portanto, os headers de resposta não devem duplicar o Access-Control-Allow-Origin.
     """
-    # Trata CORS Pre-flight OPTIONS
     http_ctx = event.get("requestContext", {}).get("http", {})
     method = http_ctx.get("method", event.get("httpMethod", "GET")).upper()
     path = http_ctx.get("path", event.get("rawPath", event.get("path", "/")))
 
-    cors_headers = {
-        "Content-Type": "application/json; charset=utf-8",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type"
+    res_headers = {
+        "Content-Type": "application/json; charset=utf-8"
     }
 
     if method == "OPTIONS":
-        return {"statusCode": 200, "headers": cors_headers, "body": "{}"}
+        return {"statusCode": 200, "headers": res_headers, "body": "{}"}
 
     query_params = event.get("queryStringParameters") or {}
     raw_body = event.get("body", "{}")
@@ -349,7 +347,7 @@ def lambda_handler(event, context):
     status, data = handle_api_request(method, path, query_params, body_data)
     return {
         "statusCode": status,
-        "headers": cors_headers,
+        "headers": res_headers,
         "body": json.dumps(data, ensure_ascii=False)
     }
 
