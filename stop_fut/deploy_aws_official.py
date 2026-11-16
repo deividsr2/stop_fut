@@ -72,14 +72,12 @@ def migrate_database_items():
     
     # Verifica quantos itens já estão na tabela oficial
     try:
-        official_scan = dynamo_official.scan(TableName=DYNAMO_TABLE, Select="COUNT", Limit=10)
-        official_count = official_scan.get("Count", 0)
-    except Exception:
-        official_count = 0
-
-    if official_count >= 5000:
-        print(f"[OK] DynamoDB Oficial já possui {official_count}+ registros semeados. Pulando migração.")
-        return
+        test_scan = dynamo_official.scan(TableName=DYNAMO_TABLE, Limit=1)
+        if test_scan.get("Items"):
+            print(f"[OK] DynamoDB Oficial já possui os registros semeados com sucesso! Pulando migração.")
+            return
+    except Exception as e:
+        print("Verificação do DynamoDB:", e)
 
     # Conecta no emulador local para ler os dados
     print("Lendo dados da base local (6.000+ jogadores, clubes e estádios)...")
@@ -210,8 +208,8 @@ def deploy_lambda():
                 AuthType="NONE",
                 Cors={
                     "AllowOrigins": ["*"],
-                    "AllowMethods": ["GET", "POST", "OPTIONS"],
-                    "AllowHeaders": ["Content-Type"]
+                    "AllowMethods": ["*"],
+                    "AllowHeaders": ["*"]
                 }
             )
             function_url = url_res["FunctionUrl"]
@@ -231,9 +229,23 @@ def deploy_lambda():
         print("[OK] Permissão de acesso público concedida à Function URL.")
     except ClientError as e:
         if "ResourceConflictException" in str(e):
-            pass # Permissão já existe
+            pass
         else:
             print("Nota sobre permissão:", e)
+
+    try:
+        lambda_official.add_permission(
+            FunctionName=LAMBDA_NAME,
+            StatementId="FunctionURLAllowPublicInvoke",
+            Action="lambda:InvokeFunction",
+            Principal="*"
+        )
+        print("[OK] Permissão InvokeFunction concedida.")
+    except ClientError as e:
+        if "ResourceConflictException" in str(e):
+            pass
+        else:
+            print("Nota sobre permissão Invoke:", e)
 
     return function_url.rstrip("/")
 
