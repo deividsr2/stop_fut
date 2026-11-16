@@ -292,6 +292,31 @@ class RoomsManager:
             player["answers"] = answers
             self._update_global_ranking(player, total_points)
 
+        # Registra histórico completo da rodada (perguntas, respostas e decisão do VAR)
+        if "rounds_history" not in room:
+            room["rounds_history"] = []
+
+        round_entry = None
+        for r in room["rounds_history"]:
+            if r.get("round") == room["current_round"]:
+                round_entry = r
+                break
+        if not round_entry:
+            round_entry = {
+                "round": room["current_round"],
+                "letter": letter,
+                "categories": room["categories"],
+                "submissions": {}
+            }
+            room["rounds_history"].append(round_entry)
+
+        round_entry["submissions"][user_id] = {
+            "player_name": player["name"] if player else user_id,
+            "answers": answers,
+            "results": results,
+            "points": total_points
+        }
+
         self._sync_room_to_dynamo(room)
         return {
             "total_points": total_points,

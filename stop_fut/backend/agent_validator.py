@@ -509,7 +509,19 @@ class FootballAgentValidator:
                     clube = it.get("clube", {}).get("S", "")
                     passagem = f" (passagens por {clube})" if clube else ""
 
+                    pos_match = False
                     if target_pos_norm in pos_gen or target_pos_norm in pos_det or pos_gen in target_pos_norm or pos_det in target_pos_norm:
+                        pos_match = True
+                    elif target_pos_norm == "volante" and any(k in pos_gen or k in pos_det for k in ["volante", "meio-campo", "meia", "defensive midfield"]):
+                        pos_match = True
+                    elif target_pos_norm == "goleiro" and any(k in pos_gen or k in pos_det for k in ["goleiro", "guarda-redes", "goalkeeper"]):
+                        pos_match = True
+                    elif target_pos_norm == "atacante" and any(k in pos_gen or k in pos_det for k in ["atacante", "centroavante", "ponta", "striker", "forward"]):
+                        pos_match = True
+                    elif target_pos_norm in ["lateral", "zagueiro", "defensor"] and any(k in pos_gen or k in pos_det for k in ["zagueiro", "lateral", "defensor"]):
+                        pos_match = True
+
+                    if pos_match:
                         return {
                             "valid": True,
                             "points": 10,
