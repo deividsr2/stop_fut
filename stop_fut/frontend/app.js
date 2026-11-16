@@ -335,6 +335,39 @@ function initActions() {
     closeModal("modal-podium");
     leaveRoom();
   });
+
+  // Botão Desistir / Sair da Sala durante a Partida (com confirmação em dois toques arcade)
+  let forfeitConfirmTimer = null;
+  const btnForfeit = document.getElementById("btn-forfeit-game");
+  if (btnForfeit) {
+    btnForfeit.addEventListener("click", () => {
+      if (!btnForfeit.classList.contains("confirming")) {
+        btnForfeit.classList.add("confirming");
+        btnForfeit.innerText = "⚠️ Confirmar Desistência?";
+        showToast("info", "Toque novamente para confirmar a desistência da partida.");
+        forfeitConfirmTimer = setTimeout(() => {
+          btnForfeit.classList.remove("confirming");
+          btnForfeit.innerText = "🏳️ Desistir / Sair da Sala";
+        }, 4000);
+      } else {
+        clearTimeout(forfeitConfirmTimer);
+        btnForfeit.classList.remove("confirming");
+        btnForfeit.innerText = "🏳️ Desistir / Sair da Sala";
+        leaveRoom();
+        showToast("info", "Você desistiu da partida e voltou ao menu principal.");
+      }
+    });
+  }
+
+  // Botão Sair da Sala na tela de Resultados do VAR
+  const btnLeaveResults = document.getElementById("btn-leave-results");
+  if (btnLeaveResults) {
+    btnLeaveResults.addEventListener("click", () => {
+      closeModal("modal-results");
+      leaveRoom();
+      showToast("info", "Você saiu da sala.");
+    });
+  }
 }
 
 // ========================================================
@@ -426,16 +459,28 @@ async function enterRoom(roomId, password = "") {
   }
 }
 
-function leaveRoom() {
+async function leaveRoom() {
   if (roomPollInterval) clearInterval(roomPollInterval);
+  const leavingRoomId = currentRoomId;
   currentRoomId = null;
   currentRoomState = null;
   roundSubmitted = false;
+
+  if (leavingRoomId) {
+    try {
+      fetch(`${API_BASE}/api/rooms/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ room_id: leavingRoomId, user_id: currentUser.id })
+      }).catch(e => console.warn("Erro ao notificar saída:", e));
+    } catch (e) {}
+  }
 
   window.history.pushState({}, "", window.location.pathname);
   document.getElementById("screen-room-lobby").classList.add("hidden");
   document.getElementById("screen-game").classList.add("hidden");
   closeModal("modal-results");
+  closeModal("modal-podium");
   document.getElementById("screen-home").classList.remove("hidden");
 }
 

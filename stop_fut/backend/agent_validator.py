@@ -202,7 +202,21 @@ PLAYER_ALIASES = {
     "van nistelrooy": "ruud van nistelrooy",
     "ruud van nistelrooy": "ruud van nistelrooy",
     "suarez": "luis suarez",
+    "suares": "luis suarez",
     "luis suarez": "luis suarez",
+    "luis suares": "luis suarez",
+    "diaz": "luis diaz",
+    "dias": "luis diaz",
+    "luis diaz": "luis diaz",
+    "luiz diaz": "luis diaz",
+    "luis dias": "luis diaz",
+    "luiz dias": "luis diaz",
+    "anceloti": "carlo ancelotti",
+    "ancelotti": "carlo ancelotti",
+    "carlo anceloti": "carlo ancelotti",
+    "carlo ancelotti": "carlo ancelotti",
+    "filipe luiz": "filipe luis",
+    "david luis": "david luiz",
     "lewandowski": "robert lewandowski",
     "benzema": "karim benzema",
     "haaland": "erling haaland",
@@ -225,6 +239,64 @@ PLAYER_ALIASES = {
     "vini jr": "vinicius junior",
     "rodrygo": "rodrygo silva de goes"
 }
+
+def get_name_lookup_candidates(norm_ans: str) -> list:
+    """Gera variantes de busca (aliases, s/z fonético, consoantes dobradas/colapsadas) para máxima tolerância a escrita rápida."""
+    cands = []
+    def add(c):
+        c = c.strip()
+        if c and c not in cands:
+            cands.append(c)
+
+    add(norm_ans)
+    if norm_ans in PLAYER_ALIASES:
+        add(PLAYER_ALIASES[norm_ans])
+
+    words = norm_ans.split()
+
+    # 1. Troca fonética S <-> Z em espanhol/português (suarez/suares, diaz/dias, luis/luiz, gonzales/gonzalez)
+    sz_words = []
+    for w in words:
+        w_vars = {w}
+        if w.endswith('z'):
+            w_vars.add(w[:-1] + 's')
+        elif w.endswith('s'):
+            w_vars.add(w[:-1] + 'z')
+        if 'luis' in w:
+            w_vars.add(w.replace('luis', 'luiz'))
+        elif 'luiz' in w:
+            w_vars.add(w.replace('luiz', 'luis'))
+        sz_words.append(list(w_vars))
+
+    import itertools
+    for combo in itertools.product(*sz_words):
+        combo_str = ' '.join(combo)
+        add(combo_str)
+        if combo_str in PLAYER_ALIASES:
+            add(PLAYER_ALIASES[combo_str])
+
+    # 2. Consoantes dobradas colapsadas (ancelotti -> anceloti, donnarumma -> donaruma)
+    collapsed = re.sub(r'([bcdfghjklmnpqrstvwxyz])\1+', r'\1', norm_ans)
+    add(collapsed)
+    if collapsed in PLAYER_ALIASES:
+        add(PLAYER_ALIASES[collapsed])
+
+    # 3. Consoantes dobradas expandidas (anceloti -> ancelotti)
+    for ch in ['l', 't', 'n', 'c', 'p', 's', 'r']:
+        if ch in norm_ans and (ch*2) not in norm_ans:
+            doubled = norm_ans.replace(ch, ch*2)
+            add(doubled)
+            if doubled in PLAYER_ALIASES:
+                add(PLAYER_ALIASES[doubled])
+
+    # 4. Sobrenome único / último nome (ex: "suarez", "diaz", "ancelotti")
+    if len(words) > 1:
+        last = words[-1]
+        add(last)
+        if last in PLAYER_ALIASES:
+            add(PLAYER_ALIASES[last])
+
+    return cands
 
 class FootballAgentValidator:
     def __init__(self):
@@ -415,30 +487,20 @@ class FootballAgentValidator:
         sector_name = sector_cfg["name"]
         keywords = sector_cfg["keywords"]
 
-        # Nível 1: Consulta direta no DynamoDB
+        # Nível 1: Consulta direta no DynamoDB com candidatos fonéticos e aliases
         try:
             items = []
-            for query_name in {norm_ans, mapped_ans}:
+            candidates = get_name_lookup_candidates(norm_ans)
+            for cand in candidates:
                 res = self.client.query(
                     TableName=TABLE_NAME,
                     KeyConditionExpression="pk = :pk",
-                    ExpressionAttributeValues={":pk": {"S": f"PLAYER#{query_name}"}}
+                    ExpressionAttributeValues={":pk": {"S": f"PLAYER#{cand}"}}
                 )
-                items.extend(res.get("Items", []))
-
-            # Nível 2: Busca fuzzy se não achou direto
-            if not items:
-                scan_res = self.client.scan(
-                    TableName=TABLE_NAME,
-                    FilterExpression="#tp = :t and letra_inicial = :l",
-                    ExpressionAttributeNames={"#tp": "type"},
-                    ExpressionAttributeValues={":t": {"S": "PLAYER"}, ":l": {"S": letter}},
-                    Limit=150
-                )
-                for it in scan_res.get("Items", []):
-                    db_name = it.get("apelido_normalizado", {}).get("S", "")
-                    if difflib.SequenceMatcher(None, norm_ans, db_name).ratio() >= 0.82 or difflib.SequenceMatcher(None, mapped_ans, db_name).ratio() >= 0.82:
-                        items.append(it)
+                cand_items = res.get("Items", [])
+                if cand_items:
+                    items.extend(cand_items)
+                    break
 
             if items:
                 for it in items:
@@ -453,7 +515,8 @@ class FootballAgentValidator:
                             "valid": True,
                             "points": 10,
                             "reason": f"Golaço! {nome} ({pos_det.title()}{passagem}) comanda a {sector_name}!",
-                            "answer": raw_ans
+                            "answer": raw_ans,
+                            "matched_official": nome
                         }
 
                 pos_real = items[0].get("posicao_detalhada", {}).get("S", items[0].get("posicao", {}).get("S", "outra posição"))
@@ -518,30 +581,20 @@ class FootballAgentValidator:
         target_pos_norm = normalize_text(target_pos)
         mapped_ans = PLAYER_ALIASES.get(norm_ans, norm_ans)
 
-        # Nível 1: Consulta direta no DynamoDB (nome original e apelido mapeado)
+        # Nível 1: Consulta direta no DynamoDB com candidatos fonéticos e aliases
         try:
             items = []
-            for query_name in {norm_ans, mapped_ans}:
+            candidates = get_name_lookup_candidates(norm_ans)
+            for cand in candidates:
                 res = self.client.query(
                     TableName=TABLE_NAME,
                     KeyConditionExpression="pk = :pk",
-                    ExpressionAttributeValues={":pk": {"S": f"PLAYER#{query_name}"}}
+                    ExpressionAttributeValues={":pk": {"S": f"PLAYER#{cand}"}}
                 )
-                items.extend(res.get("Items", []))
-
-            # Nível 2: Busca fuzzy se não achou direto
-            if not items:
-                scan_res = self.client.scan(
-                    TableName=TABLE_NAME,
-                    FilterExpression="#tp = :t and letra_inicial = :l",
-                    ExpressionAttributeNames={"#tp": "type"},
-                    ExpressionAttributeValues={":t": {"S": "PLAYER"}, ":l": {"S": letter}},
-                    Limit=150
-                )
-                for it in scan_res.get("Items", []):
-                    db_name = it.get("apelido_normalizado", {}).get("S", "")
-                    if difflib.SequenceMatcher(None, norm_ans, db_name).ratio() >= 0.82 or difflib.SequenceMatcher(None, mapped_ans, db_name).ratio() >= 0.82:
-                        items.append(it)
+                cand_items = res.get("Items", [])
+                if cand_items:
+                    items.extend(cand_items)
+                    break
 
             if items:
                 for it in items:
@@ -568,7 +621,8 @@ class FootballAgentValidator:
                             "valid": True,
                             "points": 10,
                             "reason": f"Golaço! {nome} ({pos_det.title()}{passagem}) é um {target_pos.title()} válido.",
-                            "answer": raw_ans
+                            "answer": raw_ans,
+                            "matched_official": nome
                         }
 
                 # Se o atleta existe mas jogava em outra posição
@@ -725,11 +779,11 @@ class FootballAgentValidator:
     # VALIDAÇÃO DE JOGADOR GENÉRICO (COM BUSCA MUNDIAL E AUTO-APRENDIZADO)
     # -------------------------------------------------------------
     def _validate_generic_player(self, norm_ans: str, raw_ans: str, letter: str) -> dict:
-        mapped_ans = PLAYER_ALIASES.get(norm_ans, norm_ans)
+        candidates = get_name_lookup_candidates(norm_ans)
 
-        # Nível 1: Busca exata no DynamoDB (nome original e apelido mapeado)
+        # Nível 1: Busca direta no DynamoDB (nome original, aliases, s/z fonético, etc)
         try:
-            for q_name in {norm_ans, mapped_ans}:
+            for q_name in candidates:
                 res = self.client.query(
                     TableName=TABLE_NAME,
                     KeyConditionExpression="pk = :pk",
@@ -738,7 +792,7 @@ class FootballAgentValidator:
                 )
                 if res.get("Items"):
                     it = res["Items"][0]
-                    nome = it.get("nome", {}).get("S", raw_ans)
+                    nome = it.get("nome", {}).get("S", it.get("apelido", {}).get("S", raw_ans))
                     cl = it.get("clube", {}).get("S", "")
                     pos = it.get("posicao_detalhada", {}).get("S", "Jogador")
                     cl_str = f", passagem por {cl}" if cl else ""
@@ -746,62 +800,45 @@ class FootballAgentValidator:
                         "valid": True,
                         "points": 10,
                         "reason": f"Golaço! {nome} ({pos}{cl_str}) é um jogador válido.",
-                        "answer": raw_ans
-                    }
-
-            # Nível 2: Busca fuzzy/aproximada por nome no DynamoDB (para atletas com mesma letra)
-            scan_res = self.client.scan(
-                TableName=TABLE_NAME,
-                FilterExpression="#tp = :t and letra_inicial = :l",
-                ExpressionAttributeNames={"#tp": "type"},
-                ExpressionAttributeValues={":t": {"S": "PLAYER"}, ":l": {"S": letter}},
-                Limit=120
-            )
-            for it in scan_res.get("Items", []):
-                db_name = it.get("apelido_normalizado", {}).get("S", "")
-                ratio = difflib.SequenceMatcher(None, norm_ans, db_name).ratio()
-                if ratio >= 0.82:
-                    return {
-                        "valid": True,
-                        "points": 10,
-                        "reason": f"Válido! {it.get('apelido', {}).get('S', raw_ans)} (reconhecido na base).",
-                        "answer": raw_ans
+                        "answer": raw_ans,
+                        "matched_official": nome
                     }
 
         except Exception as e:
             print("Erro DynamoDB jogador:", e)
 
         # Nível 3: Consulta ao VAR Online (Wikipedia / Craques Mundiais como Van Nistelrooy)
-        ext = self._search_external_soccer(raw_ans)
+        ext = None
+        for cand in [raw_ans, candidates[0]]:
+            ext = self._search_external_soccer(cand)
+            if ext and (ext["is_player"] or "futebolista" in ext["description"].lower() or "futebol" in ext["extract"].lower()):
+                break
+
         if ext and (ext["is_player"] or "futebolista" in ext["description"].lower() or "futebol" in ext["extract"].lower()):
             # Valida se o nome oficial ou apelido coincide com a letra
             norm_title = normalize_text(ext["title"])
-            # Título pode ser "Ruud van Nistelrooy" ou "Van Nistelrooy"
             words = norm_title.split()
             matches_letter = any(w.startswith(letter.lower()) for w in words) or norm_ans.startswith(letter.lower())
 
             if matches_letter:
-                # Auto-aprendizado: salva no DynamoDB para futuras consultas instantâneas!
-                self._save_to_dynamo(
-                    pk=f"PLAYER#{norm_ans}",
-                    sk="INFO#GLOBAL",
-                    item_type="PLAYER",
-                    extra={
-                        "nome": ext["title"],
-                        "apelido": ext["title"],
-                        "apelido_normalizado": norm_ans,
-                        "posicao": "Jogador",
-                        "posicao_detalhada": ext.get("position", "Atleta"),
-                        "letra_inicial": letter,
-                        "clube": "Futebol Internacional",
-                        "clube_normalizado": "futebol internacional"
-                    }
-                )
+                save_payload = {
+                    "nome": ext["title"],
+                    "apelido": ext["title"],
+                    "apelido_normalizado": norm_ans,
+                    "posicao": "Jogador",
+                    "posicao_detalhada": ext.get("position", "Atleta"),
+                    "letra_inicial": letter,
+                    "clube": "Futebol Internacional",
+                    "clube_normalizado": "futebol internacional"
+                }
+                for k in {norm_ans, candidates[0]}:
+                    self._save_to_dynamo(pk=f"PLAYER#{k}", sk="INFO#GLOBAL", item_type="PLAYER", extra=save_payload)
                 return {
                     "valid": True,
                     "points": 10,
                     "reason": f"Golaço confirmado pelo VAR! {ext['title']} ({ext['description']}) adicionado à base.",
-                    "answer": raw_ans
+                    "answer": raw_ans,
+                    "matched_official": ext["title"]
                 }
 
         return {
@@ -816,35 +853,39 @@ class FootballAgentValidator:
     # -------------------------------------------------------------
     def _validate_player_club_position(self, norm_ans: str, raw_ans: str, target_club: str, target_pos: str, letter: str) -> dict:
         try:
-            # 1. Consulta o jogador no DynamoDB
-            res = self.client.query(
-                TableName=TABLE_NAME,
-                KeyConditionExpression="pk = :pk",
-                ExpressionAttributeValues={":pk": {"S": f"PLAYER#{norm_ans}"}}
-            )
-            items = res.get("Items", [])
-            
-            # Busca fuzzy se não encontrou direto
-            if not items:
-                scan_res = self.client.scan(
+            candidates = get_name_lookup_candidates(norm_ans)
+            items = []
+
+            # 1. Consulta candidatos diretos no DynamoDB
+            for cand in candidates:
+                res = self.client.query(
                     TableName=TABLE_NAME,
-                    FilterExpression="#tp = :t and letra_inicial = :l",
-                    ExpressionAttributeNames={"#tp": "type"},
-                    ExpressionAttributeValues={":t": {"S": "PLAYER"}, ":l": {"S": letter}},
-                    Limit=150
+                    KeyConditionExpression="pk = :pk",
+                    ExpressionAttributeValues={":pk": {"S": f"PLAYER#{cand}"}}
                 )
-                for it in scan_res.get("Items", []):
-                    db_name = it.get("apelido_normalizado", {}).get("S", "")
-                    if difflib.SequenceMatcher(None, norm_ans, db_name).ratio() >= 0.82:
-                        items.append(it)
+                cand_items = res.get("Items", [])
+                if cand_items:
+                    items.extend(cand_items)
+                    break
 
             # Se encontrou no DynamoDB, avalia passagem e posição
             if items:
                 club_records = []
                 for it in items:
                     cl_norm = normalize_text(it.get("clube_normalizado", {}).get("S", ""))
+                    cl_raw = normalize_text(it.get("clube", {}).get("S", ""))
                     cl_alias = CLUB_ALIASES.get(cl_norm, cl_norm)
-                    if target_club in cl_norm or cl_norm in target_club or cl_alias == target_club:
+                    cl_raw_alias = CLUB_ALIASES.get(cl_raw, cl_raw)
+                    matches_club = (
+                        target_club in cl_norm or
+                        target_club in cl_raw or
+                        cl_norm in target_club or
+                        cl_raw in target_club or
+                        cl_alias == target_club or
+                        cl_raw_alias == target_club or
+                        any(a in cl_norm or a in cl_raw for a in CLUB_ALIASES if CLUB_ALIASES[a] == target_club)
+                    )
+                    if matches_club:
                         club_records.append(it)
 
                 if not club_records:
@@ -863,6 +904,7 @@ class FootballAgentValidator:
                     pos_det = normalize_text(rec.get("posicao_detalhada", {}).get("S", ""))
                     anos = rec.get("anos", {}).get("S", "")
                     ano_str = f" ({anos})" if anos else ""
+                    matched_name = rec.get("nome", {}).get("S", rec.get("apelido", {}).get("S", raw_ans))
 
                     if "esquerdo" in target_pos:
                         if "esquerdo" in pos_det or pos_det == "lateral esquerdo":
@@ -870,7 +912,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço confirmado pelo VAR! {raw_ans} atuou como Lateral-Esquerdo do {target_club.title()}{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                         elif "direito" in pos_det:
                             return {
@@ -885,7 +928,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço confirmado pelo VAR! {raw_ans} atuou como Lateral-Direito do {target_club.title()}{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                         elif "esquerdo" in pos_det:
                             return {
@@ -900,7 +944,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço! {raw_ans} defendeu o {target_club.title()} como Volante / Meio-campo{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                     elif target_pos in ["meia", "meio-campo"]:
                         if any(k in pos_det or k in pos_gen for k in ["meia", "meio-campo", "volante", "midfield"]):
@@ -908,7 +953,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço! {raw_ans} defendeu o {target_club.title()} na meiuca como {pos_det.title()}{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                     elif target_pos == "atacante":
                         if any(k in pos_det or k in pos_gen for k in ["atacante", "centroavante", "ponta", "forward", "striker", "winger"]):
@@ -916,7 +962,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço! {raw_ans} foi Atacante do {target_club.title()}{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                     elif target_pos == "zagueiro":
                         if "zagueiro" in pos_det or "centre-back" in pos_det or "zagueiro" in pos_gen:
@@ -924,7 +971,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço! {raw_ans} foi Zagueiro do {target_club.title()}{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                     elif target_pos == "goleiro":
                         if "goleiro" in pos_det or "guarda-redes" in pos_det or "goalkeeper" in pos_det or "goleiro" in pos_gen:
@@ -932,7 +980,8 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço! {raw_ans} foi Goleiro do {target_club.title()}{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                     elif target_pos == "lateral":
                         if "lateral" in pos_det or "back" in pos_det:
@@ -940,14 +989,16 @@ class FootballAgentValidator:
                                 "valid": True,
                                 "points": 10,
                                 "reason": f"Golaço! {raw_ans} defendeu o {target_club.title()} como Lateral{ano_str}.",
-                                "answer": raw_ans
+                                "answer": raw_ans,
+                                "matched_official": matched_name
                             }
                     elif target_pos in pos_gen or target_pos in pos_det or pos_gen in target_pos:
                         return {
                             "valid": True,
                             "points": 10,
                             "reason": f"Válido! {raw_ans} defendeu o {target_club.title()} como {pos_det.title()}{ano_str}.",
-                            "answer": raw_ans
+                            "answer": raw_ans,
+                            "matched_official": matched_name
                         }
 
                 pos_jogadas = list({rec.get("posicao_detalhada", {}).get("S", rec.get("posicao", {}).get("S", "")) for rec in club_records})
@@ -959,19 +1010,32 @@ class FootballAgentValidator:
                 }
 
             # Nível 3: Se não encontrou no banco, checa no VAR Online
-            ext = self._search_external_soccer(f"{raw_ans} {target_club}")
-            if ext and ext["is_player"]:
-                ext_full = f"{ext['description']} {ext['extract']}".lower()
-                club_mentioned = target_club in ext_full or any(a in ext_full for a in CLUB_ALIASES if CLUB_ALIASES[a] == target_club)
-                pos_mentioned = any(p in ext_full for p in [target_pos, "lateral", "zagueiro", "atacante", "meia", "goleiro"])
+            for cand in [raw_ans, candidates[0]]:
+                ext = self._search_external_soccer(cand)
+                if ext and ext["is_player"]:
+                    ext_full = f"{ext['description']} {ext['extract']}".lower()
+                    club_mentioned = target_club in ext_full or any(a in ext_full for a in CLUB_ALIASES if CLUB_ALIASES[a] == target_club)
+                    pos_mentioned = any(p in ext_full for p in [target_pos, "lateral", "zagueiro", "atacante", "centroavante", "meia", "volante", "goleiro"])
 
-                if club_mentioned and pos_mentioned:
-                    return {
-                        "valid": True,
-                        "points": 10,
-                        "reason": f"Golaço confirmado pelo VAR! {ext['title']} jogou no {target_club.title()} ({ext['description']}).",
-                        "answer": raw_ans
-                    }
+                    if club_mentioned and pos_mentioned:
+                        save_payload = {
+                            "nome": ext["title"],
+                            "apelido": ext["title"],
+                            "apelido_normalizado": norm_ans,
+                            "posicao": ext.get("position", target_pos.title()),
+                            "posicao_detalhada": ext.get("position", target_pos.title()),
+                            "letra_inicial": letter,
+                            "clube": target_club.title(),
+                            "clube_normalizado": target_club
+                        }
+                        self._save_to_dynamo(f"PLAYER#{norm_ans}", f"CLUB#{target_club}", "PLAYER", save_payload)
+                        return {
+                            "valid": True,
+                            "points": 10,
+                            "reason": f"Golaço confirmado pelo VAR! {ext['title']} jogou no {target_club.title()} ({ext['description']}).",
+                            "answer": raw_ans,
+                            "matched_official": ext["title"]
+                        }
 
         except Exception as e:
             print("Erro DynamoDB jogador x posição:", e)
@@ -1041,36 +1105,46 @@ class FootballAgentValidator:
         return {"valid": False, "points": 0, "reason": f"Estádio '{raw_ans}' não reconhecido.", "answer": raw_ans}
 
     def _validate_coach(self, norm_ans: str, raw_ans: str, letter: str) -> dict:
+        candidates = get_name_lookup_candidates(norm_ans)
         try:
-            res = self.client.query(
-                TableName=TABLE_NAME,
-                KeyConditionExpression="pk = :pk",
-                ExpressionAttributeValues={":pk": {"S": f"COACH#{norm_ans}"}},
-                Limit=1
-            )
-            if res.get("Items"):
-                it = res["Items"][0]
-                tc = it.get("nome", {}).get("S", raw_ans)
-                cl = it.get("clube", {}).get("S", "")
-                detail = f" (com passagem por {cl})" if cl else ""
-                return {
-                    "valid": True,
-                    "points": 10,
-                    "reason": f"Excelente! {tc} é um técnico de futebol registrado{detail}.",
-                    "answer": raw_ans
-                }
+            for cand in candidates:
+                res = self.client.query(
+                    TableName=TABLE_NAME,
+                    KeyConditionExpression="pk = :pk",
+                    ExpressionAttributeValues={":pk": {"S": f"COACH#{cand}"}},
+                    Limit=1
+                )
+                if res.get("Items"):
+                    it = res["Items"][0]
+                    tc = it.get("nome", {}).get("S", raw_ans)
+                    cl = it.get("clube", {}).get("S", "")
+                    detail = f" (com passagem por {cl})" if cl else ""
+                    return {
+                        "valid": True,
+                        "points": 10,
+                        "reason": f"Excelente! {tc} é um técnico de futebol registrado{detail}.",
+                        "answer": raw_ans,
+                        "matched_official": tc
+                    }
         except Exception as e:
             print("Erro técnico:", e)
 
         # VAR Online
-        ext = self._search_external_soccer(raw_ans)
+        ext = None
+        for cand in [raw_ans, candidates[0]]:
+            ext = self._search_external_soccer(cand)
+            if ext and (ext["is_coach"] or "treinador" in ext["description"].lower() or "tecnico" in ext["extract"].lower()):
+                break
+
         if ext and (ext["is_coach"] or "treinador" in ext["description"].lower() or "tecnico" in ext["extract"].lower()):
-            self._save_to_dynamo(f"COACH#{norm_ans}", "INFO", "COACH", {"nome": ext["title"], "nome_normalizado": norm_ans, "letra_inicial": letter})
+            for k in {norm_ans, candidates[0]}:
+                self._save_to_dynamo(f"COACH#{k}", "INFO", "COACH", {"nome": ext["title"], "nome_normalizado": norm_ans, "letra_inicial": letter})
             return {
                 "valid": True,
                 "points": 10,
                 "reason": f"Excelente! {ext['title']} ({ext['description']}) adicionado à base.",
-                "answer": raw_ans
+                "answer": raw_ans,
+                "matched_official": ext["title"]
             }
 
         return {"valid": False, "points": 0, "reason": f"Técnico '{raw_ans}' não encontrado.", "answer": raw_ans}

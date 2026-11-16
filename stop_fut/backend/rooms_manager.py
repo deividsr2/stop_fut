@@ -167,6 +167,28 @@ class RoomsManager:
         )
         return {"action": "created", "room_id": new_room["id"]}
 
+    def leave_room(self, room_id: str, user_id: str) -> dict:
+        room = self._get_room(room_id)
+        if not room:
+            return {"success": True}
+
+        # Remove jogador da sala imediatamente
+        room.get("players", {}).pop(user_id, None)
+
+        # Se quem saiu era o host e ainda restam jogadores, passa a braçadeira de capitão
+        if room.get("host_id") == user_id:
+            remaining = list(room.get("players", {}).keys())
+            if remaining:
+                new_host = remaining[0]
+                room["host_id"] = new_host
+                if new_host in room["players"]:
+                    room["players"][new_host]["is_host"] = True
+            else:
+                room["status"] = "FINISHED"
+
+        self._sync_room_to_dynamo(room)
+        return {"success": True}
+
     def get_room_state(self, room_id: str, user_id: str) -> dict:
         room = self._get_room(room_id)
         if not room:

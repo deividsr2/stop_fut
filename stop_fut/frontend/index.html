@@ -191,6 +191,9 @@
         <button id="btn-stop-game" class="btn-stop-pulse">
           🚨 STOP!
         </button>
+        <button id="btn-forfeit-game" class="btn-forfeit-action">
+          🏳️ Desistir / Sair da Sala
+        </button>
       </div>
     </section>
 
@@ -222,9 +225,12 @@
           <span>Pontos ganhos:</span>
           <strong id="round-earned-points">+0 PTS</strong>
         </div>
-        <button id="btn-next-round-action" class="btn-stopots btn-play hidden">
-          PRÓXIMA RODADA ➡️
-        </button>
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          <button id="btn-leave-results" class="btn-secondary-sm">🚪 Sair da Sala</button>
+          <button id="btn-next-round-action" class="btn-stopots btn-play hidden">
+            PRÓXIMA RODADA ➡️
+          </button>
+        </div>
         <span id="guest-next-round-wait" class="text-muted">Aguardando o host avançar...</span>
       </div>
     </div>

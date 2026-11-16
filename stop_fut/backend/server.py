@@ -3,6 +3,7 @@ Servidor API, Multiplayer e Backend do StopFut (compatível com Local e AWS Lamb
 Disponibiliza endpoints REST para:
 - Salas Multiplayer estilo StopotS (Lobby, Públicas, Privadas com senha)
 - Partida Rápida (Quick Match)
+
 - Sincronização de rodada, letra, categorias, contagem regressiva e STOP
 - Validação pelo Árbitro VAR com DynamoDB
 - Ranking da Sala e Ranking Global
@@ -249,6 +250,13 @@ def handle_api_request(method: str, path: str, query_params: dict, body_data: di
             )
             if "error" in res:
                 return 400, res
+            return 200, res
+
+        if path == "/api/rooms/leave":
+            res = rooms_mgr.leave_room(
+                room_id=body_data.get("room_id", ""),
+                user_id=body_data.get("user_id", "")
+            )
             return 200, res
 
         # Autenticação Google (Opcional - decodifica perfil sem dependências externas)
