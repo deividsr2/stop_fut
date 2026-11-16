@@ -1,4 +1,4 @@
-﻿# Script de Inicialização Completa do StopFut
+# Script de Inicialização Completa do StopFut
 Write-Host "============================================================" -ForegroundColor Green
 Write-Host "         INICIANDO STOPFUT (ADEDONHA DO FUTEBOL)            " -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Green

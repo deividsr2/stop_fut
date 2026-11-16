@@ -3,126 +3,337 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StopFut - Adedonha do Futebol</title>
+  <title>StopFut - A Adedonha Oficial do Futebol</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Bebas+Neue&family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- Google Identity Services (Opcional) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <!-- Header / Barra Superior -->
-  <header class="header">
-    <div class="logo-container">
-      <div class="logo-icon">⚽</div>
-      <div class="logo-text">
-        <h1>STOP<span>FUT</span></h1>
-        <p>A Adedonha Oficial dos Craques</p>
-      </div>
+
+  <!-- Barra Superior / Topo -->
+  <div class="top-nav">
+    <div class="nav-socials">
+      <span class="social-icon" title="Bola de Ouro">⚽</span>
+      <span class="social-icon" title="Copa">🏆</span>
+      <span class="social-icon" title="Estádio">🏟️</span>
     </div>
 
-    <div class="header-stats">
-      <div class="stat-badge">
-        <span class="stat-label">RODADA</span>
-        <span class="stat-val" id="round-num">1</span>
-      </div>
-      <div class="stat-badge score-badge">
-        <span class="stat-label">PONTOS</span>
-        <span class="stat-val" id="total-score">0</span>
-      </div>
-      <div class="stat-badge aws-badge" title="Conectado ao AWS Emulator Local">
-        <span class="stat-label">INFRA</span>
-        <span class="stat-val aws-indicator">AWS LOCAL 🟢</span>
-      </div>
+    <!-- Logo Central Estilo StopotS -->
+    <div class="main-logo-wrap">
+      <div class="sunburst">☀️</div>
+      <h1 class="game-logo">Stop<span>Fut</span></h1>
+      <span class="logo-sub">STOP • ADEDONHA DO FUTEBOL</span>
     </div>
-  </header>
 
-  <!-- Container Principal -->
-  <main class="container">
-
-    <!-- Tela Inicial / Pré-jogo -->
-    <section id="start-screen" class="card hero-card">
-      <div class="trophy-hero">🏆</div>
-      <h2>Prepare-se para o Jogo!</h2>
-      <p class="subtitle">Desafie seus conhecimentos de futebol: clubes, craques, estádios e posições táticas específicas de cada time!</p>
-      
-      <div class="rules-box">
-        <h3>📋 Como Funciona:</h3>
-        <ul>
-          <li>Uma <strong>letra</strong> será sorteada aleatoriamente a cada rodada.</li>
-          <li>Responda categorias como <em>"Lateral Esquerdo do Flamengo"</em>, <em>"Clube"</em>, <em>"Estádio"</em>.</li>
-          <li>Quando terminar, aperte <strong>STOP!</strong> antes do tempo acabar.</li>
-          <li>O <strong>Agente Árbitro (VAR)</strong> valida suas respostas no <strong>Amazon DynamoDB</strong> local!</li>
-        </ul>
-      </div>
-
-      <button id="btn-start" class="btn btn-primary btn-large">
-        INICIAR PARTIDA ⚽
+    <div class="nav-actions">
+      <button id="btn-open-ranking" class="nav-btn pill-btn">
+        🏆 RANKING
       </button>
-    </section>
+      <span class="lang-badge">🇧🇷 PT</span>
+    </div>
+  </div>
 
-    <!-- Tela da Partida (Game Arena) -->
-    <section id="game-screen" class="game-arena hidden">
-      <!-- Painel de Informações da Rodada -->
-      <div class="round-panel">
-        <div class="letter-box">
-          <span class="letter-sub">LETRA DA VEZ</span>
-          <div class="letter-display" id="current-letter">-</div>
+  <!-- Container Principal do Jogo -->
+  <main class="main-stage">
+
+    <!-- ======================================================== -->
+    <!-- TELA 1: HOME / LOBBY INICIAL (IDÊNTICO AO STOPOTS)       -->
+    <!-- ======================================================== -->
+    <section id="screen-home" class="stopots-card">
+      <div class="card-grid">
+
+        <!-- Coluna Esquerda: JOGUE AGORA -->
+        <div class="panel-left">
+          <h2 class="panel-title">JOGUE AGORA</h2>
+
+          <div class="user-profile-box">
+            <div class="avatar-wrapper" id="btn-edit-avatar" title="Clique para trocar avatar">
+              <div class="avatar-circle" id="user-avatar-display">👱‍♂️</div>
+              <button class="btn-avatar-edit">✏️</button>
+            </div>
+            
+            <div class="nickname-input-group">
+              <input type="text" id="nickname-input" maxlength="16" placeholder="Seu Nome ou Craque" autocomplete="off">
+              <button id="btn-random-name" class="btn-dice" title="Gerar apelido aleatório">🎲</button>
+            </div>
+          </div>
+
+          <!-- Botões Principais Estilo StopotS (Amarelos com Relevo) -->
+          <div class="action-buttons-group">
+            <button id="btn-quick-play" class="btn-stopots btn-play">
+              <span class="btn-icon">🎮</span>
+              <span class="btn-text">JOGAR</span>
+            </button>
+
+            <button id="btn-open-create-room" class="btn-stopots btn-create">
+              <span class="btn-icon">⚙️</span>
+              <span class="btn-text">CRIAR SALA</span>
+            </button>
+
+            <button id="btn-open-rooms-list" class="btn-stopots btn-rooms">
+              <span class="btn-icon">🚪</span>
+              <span class="btn-text">SALAS</span>
+            </button>
+          </div>
+
+          <!-- Login Opcional com Google -->
+          <div class="google-auth-box">
+            <div id="google-login-btn"></div>
+            <div id="logged-user-bar" class="logged-bar hidden">
+              <span id="logged-email-text"></span>
+              <button id="btn-logout-google" class="btn-logout-sm">Sair</button>
+            </div>
+          </div>
         </div>
 
-        <div class="timer-box">
-          <div class="timer-circle">
-            <span id="timer-val">60</span>
-            <small>SEG</small>
+        <!-- Coluna Direita: COMO JOGAR (Carrossel StopotS) -->
+        <div class="panel-right">
+          <h2 class="panel-title">COMO JOGAR</h2>
+
+          <div class="tutorial-card">
+            <div class="tutorial-illustration" id="tutorial-icon">⏱️</div>
+            <h3 class="tutorial-step-title" id="tutorial-title">1. TIC-TAC</h3>
+            <p class="tutorial-step-desc" id="tutorial-desc">
+              Preencha categorias de futebol (clubes, craques, posições específicas) com a letra sorteada antes do tempo acabar!
+            </p>
+          </div>
+
+          <!-- Indicadores de Navegação -->
+          <div class="carousel-dots" id="carousel-dots">
+            <span class="dot active" data-step="0"></span>
+            <span class="dot" data-step="1"></span>
+            <span class="dot" data-step="2"></span>
+            <span class="dot" data-step="3"></span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TELA 2: SALA DE ESPERA (LOBBY DA SALA MULTIPLAYER)      -->
+    <!-- ======================================================== -->
+    <section id="screen-room-lobby" class="stopots-card hidden">
+      <div class="room-header-bar">
+        <div>
+          <h2 id="lobby-room-name">Sala do Craque</h2>
+          <span class="room-info-pill" id="lobby-room-info">5 Rodadas • 60s • Aberta</span>
+        </div>
+        <button id="btn-leave-room" class="btn-secondary-sm">Sair da Sala 🚪</button>
+      </div>
+
+      <div class="share-link-box">
+        <span>🔗 Link para convidar amigos:</span>
+        <div class="copy-input-row">
+          <input type="text" id="share-link-input" readonly>
+          <button id="btn-copy-link" class="btn-copy">COPIAR</button>
+        </div>
+      </div>
+
+      <div class="players-lobby-grid" id="lobby-players-list">
+        <!-- Jogadores na sala gerados via JS -->
+      </div>
+
+      <div class="lobby-footer">
+        <div id="host-controls" class="hidden">
+          <button id="btn-start-game" class="btn-stopots btn-play btn-pulse">
+            ⚽ INICIAR PARTIDA AGORA!
+          </button>
+        </div>
+        <div id="guest-waiting-msg" class="waiting-box">
+          <span>⏳ Aguardando o Host iniciar a partida...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- TELA 3: ARENA DA PARTIDA (RODADA AO VIVO)                -->
+    <!-- ======================================================== -->
+    <section id="screen-game" class="game-arena-stage hidden">
+      <!-- Painel Superior: Letra, Rodada e Timer -->
+      <div class="match-info-strip">
+        <div class="match-round-box">
+          <span>RODADA</span>
+          <strong id="match-round-indicator">1 / 5</strong>
+        </div>
+
+        <div class="letter-badge-hero">
+          <span class="letter-tiny">LETRA</span>
+          <div class="letter-giant" id="current-letter">-</div>
+        </div>
+
+        <div class="match-timer-box">
+          <span>TEMPO</span>
+          <div class="timer-display-box" id="timer-box">
+            <span id="timer-val">60</span>s
           </div>
         </div>
       </div>
 
-      <!-- Grade de Categorias -->
-      <div class="categories-grid" id="categories-container">
-        <!-- Gerado dinamicamente via JS -->
+      <!-- Alerta de STOP acionado por alguém na sala -->
+      <div id="stop-alert-banner" class="stop-banner hidden">
+        🚨 STOP! <span id="stopped-player-name">Alguém</span> encerrou a rodada! Finalizando...
       </div>
 
-      <!-- Botão STOP -->
-      <div class="stop-action-bar">
-        <button id="btn-stop" class="btn btn-stop">
-          🚨 STOP! (ENCERRAR RODADA)
+      <!-- Grade de Respostas das 5 Categorias -->
+      <div class="categories-form" id="categories-container">
+        <!-- Gerado via JS com ícone, nome e campo de texto -->
+      </div>
+
+      <!-- Ação de Encerrar -->
+      <div class="bottom-action-bar">
+        <button id="btn-stop-game" class="btn-stop-pulse">
+          🚨 STOP!
         </button>
       </div>
     </section>
 
-    <!-- Modal / Tela de Resultados do VAR -->
-    <section id="results-modal" class="modal-overlay hidden">
-      <div class="modal-card">
-        <div class="modal-header">
-          <div class="var-badge">🖥️ VAR EM AÇÃO</div>
-          <h2>Decisão da Arbitragem</h2>
-          <p id="round-summary-text">Validando respostas contra o banco DynamoDB...</p>
-        </div>
-
-        <div class="results-list" id="results-list">
-          <!-- Itens avaliados pelo agente -->
-        </div>
-
-        <div class="modal-footer">
-          <div class="round-score-box">
-            <span>Pontos nesta rodada:</span>
-            <strong id="round-points-earned">+0</strong>
-          </div>
-          <button id="btn-next-round" class="btn btn-primary">
-            PRÓXIMA RODADA ➡️
-          </button>
-        </div>
-      </div>
-    </section>
   </main>
 
-  <!-- Rodapé -->
-  <footer class="footer">
-    <div class="infra-footer">
-      <span>☁️ Powered by <strong>AWS Emulator Oficial</strong> (DynamoDB + S3 Static Hosting)</span>
-      <span>•</span>
-      <span>🤖 Validação com <strong>AI Agent Referee</strong></span>
+  <!-- ======================================================== -->
+  <!-- MODAL: RESULTADOS DO VAR E PLACAR DA SALA                -->
+  <!-- ======================================================== -->
+  <div id="modal-results" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header-var">
+        <div class="var-badge">🖥️ VAR EM AÇÃO</div>
+        <h2>Decisão da Arbitragem</h2>
+        <p id="var-round-title">Rodada com a letra 'X'</p>
+      </div>
+
+      <div class="modal-body">
+        <!-- Aba 1: Avaliação Lance a Lance das Respostas -->
+        <h4 class="section-title">Suas Respostas</h4>
+        <div class="var-decisions-list" id="var-results-list"></div>
+
+        <!-- Aba 2: Placar ao Vivo da Sala -->
+        <h4 class="section-title mt-4">Classificação da Sala</h4>
+        <div class="room-scoreboard" id="room-scoreboard-list"></div>
+      </div>
+
+      <div class="modal-footer-var">
+        <div class="round-score-pill">
+          <span>Pontos ganhos:</span>
+          <strong id="round-earned-points">+0 PTS</strong>
+        </div>
+        <button id="btn-next-round-action" class="btn-stopots btn-play hidden">
+          PRÓXIMA RODADA ➡️
+        </button>
+        <span id="guest-next-round-wait" class="text-muted">Aguardando o host avançar...</span>
+      </div>
     </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: CRIAR SALA                                        -->
+  <!-- ======================================================== -->
+  <div id="modal-create-room" class="modal-overlay hidden">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3>⚙️ Criar Nova Sala</h3>
+        <button class="btn-close-modal" data-close="modal-create-room">✖</button>
+      </div>
+      <div class="modal-body form-body">
+        <label>Nome da Sala:</label>
+        <input type="text" id="create-room-name" placeholder="Ex: Boleiros do Stop" maxlength="24">
+
+        <label>Tempo por Rodada:</label>
+        <select id="create-room-time">
+          <option value="45">45 Segundos</option>
+          <option value="60" selected>60 Segundos (Padrão)</option>
+          <option value="90">90 Segundos</option>
+        </select>
+
+        <label>Número de Rodadas:</label>
+        <select id="create-room-rounds">
+          <option value="3">3 Rodadas (Rápida)</option>
+          <option value="5" selected>5 Rodadas (Clássica)</option>
+          <option value="10">10 Rodadas (Campeonato)</option>
+        </select>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="create-room-private">
+          <label for="create-room-private">🔒 Sala Privada (com senha)</label>
+        </div>
+
+        <div id="password-field-group" class="hidden">
+          <label>Senha de Acesso:</label>
+          <input type="password" id="create-room-password" placeholder="Digite uma senha simples" maxlength="12">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-submit-create-room" class="btn-stopots btn-play btn-block">
+          CRIAR E ENTRAR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: LISTA DE SALAS (LOBBY)                            -->
+  <!-- ======================================================== -->
+  <div id="modal-rooms-list" class="modal-overlay hidden">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3>🚪 Salas Disponíveis</h3>
+        <button class="btn-close-modal" data-close="modal-rooms-list">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="rooms-filter-bar">
+          <span>Salas públicas abertas agora:</span>
+          <button id="btn-refresh-rooms" class="btn-refresh">🔄 Atualizar</button>
+        </div>
+        <div class="rooms-scroll-list" id="rooms-items-container">
+          <!-- Lista de salas gerada via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RANKING GERAL (LÍDERES GLOBAIS)                   -->
+  <!-- ======================================================== -->
+  <div id="modal-ranking" class="modal-overlay hidden">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3>🏆 Ranking Geral de Craques</h3>
+        <button class="btn-close-modal" data-close="modal-ranking">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="ranking-global-list" id="ranking-global-container">
+          <!-- Ranking carregado do DynamoDB -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: SELETOR DE AVATAR                                 -->
+  <!-- ======================================================== -->
+  <div id="modal-avatars" class="modal-overlay hidden">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3>⚽ Escolha seu Avatar</h3>
+        <button class="btn-close-modal" data-close="modal-avatars">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="avatar-grid-picker" id="avatar-grid-picker">
+          <!-- Avatares gerados via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rodapé Estilo StopotS -->
+  <footer class="footer-strip">
+    <span>⚽ <strong>StopFut</strong> • A Adedonha Oficial do Futebol</span>
+    <span>•</span>
+    <span>☁️ AWS Serverless (S3 + DynamoDB + Lambda Function URL)</span>
+    <span>•</span>
+    <span>Sem custos de IA</span>
   </footer>
 
   <script src="app.js"></script>

@@ -232,6 +232,14 @@ class FootballAgentValidator:
         self._cache_clubs = None
 
     def _init_dynamo(self):
+        is_lambda = bool(os.environ.get("AWS_LAMBDA_FUNCTION_NAME") or os.environ.get("AWS_EXECUTION_ENV"))
+        use_real_aws = is_lambda or os.environ.get("USE_REAL_AWS", "false").lower() in ("true", "1")
+
+        if use_real_aws:
+            region = os.environ.get("AWS_REGION", "us-east-1")
+            print(f"[AWS OFICIAL DYNAMODB] Conectado na regiao {region}")
+            return boto3.client("dynamodb", region_name=region)
+
         creds_file = os.path.join(EMULATOR_DIR, "emulator_credentials")
         ca_bundle = os.path.join(EMULATOR_DIR, "ca.pem")
         key, secret = "test", "test"
