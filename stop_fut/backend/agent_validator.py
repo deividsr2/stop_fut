@@ -298,52 +298,94 @@ class FootballAgentValidator:
             }
 
         # 4. Roteamento Inteligente por Categoria:
+        res = None
         # Linha Defensiva (Zagueiro ou Lateral)
         if category_id == "defesa" or "defensiva" in category_name.lower():
-            return self._validate_player_by_sector(norm_ans, raw_ans, "defesa", letter)
+            res = self._validate_player_by_sector(norm_ans, raw_ans, "defesa", letter)
 
         # Meiuca (Volante ou Meio-Campo)
-        if category_id == "meiuca" or "meiuca" in category_name.lower():
-            return self._validate_player_by_sector(norm_ans, raw_ans, "meiuca", letter)
+        elif category_id == "meiuca" or "meiuca" in category_name.lower():
+            res = self._validate_player_by_sector(norm_ans, raw_ans, "meiuca", letter)
 
         # Ataque (Centroavante, Ponta ou Segundo Atacante)
-        if category_id == "ataque" or ("ataque" in category_name.lower() and " do " not in category_name.lower()):
-            return self._validate_player_by_sector(norm_ans, raw_ans, "ataque", letter)
+        elif category_id == "ataque" or ("ataque" in category_name.lower() and " do " not in category_name.lower()):
+            res = self._validate_player_by_sector(norm_ans, raw_ans, "ataque", letter)
 
         # Volante de Qualquer Clube
-        if category_id == "volante" or (category_name.lower().startswith("volante") and " do " not in category_name.lower()):
-            return self._validate_player_by_position(norm_ans, raw_ans, "volante", letter)
+        elif category_id == "volante" or (category_name.lower().startswith("volante") and " do " not in category_name.lower()):
+            res = self._validate_player_by_position(norm_ans, raw_ans, "volante", letter)
 
         # Goleiro (Qualquer Clube)
-        if category_id == "goleiro" or (category_name.lower().startswith("goleiro") and " do " not in category_name.lower()):
-            return self._validate_player_by_position(norm_ans, raw_ans, "goleiro", letter)
+        elif category_id == "goleiro" or (category_name.lower().startswith("goleiro") and " do " not in category_name.lower()):
+            res = self._validate_player_by_position(norm_ans, raw_ans, "goleiro", letter)
 
         # Atacante / Goleador
-        if category_id == "atacante" or (category_name.lower().startswith("atacante") and " do " not in category_name.lower()):
-            return self._validate_player_by_position(norm_ans, raw_ans, "atacante", letter)
+        elif category_id == "atacante" or (category_name.lower().startswith("atacante") and " do " not in category_name.lower()):
+            res = self._validate_player_by_position(norm_ans, raw_ans, "atacante", letter)
 
         # Clube / Time de Futebol
-        if category_id == "clube" or (category_name.lower().startswith("clube") and " do " not in category_name.lower()):
-            return self._validate_club(norm_ans, raw_ans, letter)
+        elif category_id == "clube" or (category_name.lower().startswith("clube") and " do " not in category_name.lower()):
+            res = self._validate_club(norm_ans, raw_ans, letter)
 
         # Estádio / Arena
-        if category_id == "estadio" or category_name.lower().startswith("estadio") or category_name.lower().startswith("arena"):
-            return self._validate_stadium(norm_ans, raw_ans, letter)
+        elif category_id == "estadio" or category_name.lower().startswith("estadio") or category_name.lower().startswith("arena"):
+            res = self._validate_stadium(norm_ans, raw_ans, letter)
 
         # Técnico / Treinador
-        if category_id == "tecnico" or category_name.lower().startswith("tecnico") or category_name.lower().startswith("treinador"):
-            return self._validate_coach(norm_ans, raw_ans, letter)
+        elif category_id == "tecnico" or category_name.lower().startswith("tecnico") or category_name.lower().startswith("treinador"):
+            res = self._validate_coach(norm_ans, raw_ans, letter)
 
         # Posição de Clube Específico (ex: "Lateral Esquerdo do São Paulo", "Volante do Corinthians", "Atacante do Flamengo")
-        match = re.search(r"^(lateral(?:\s+esquerdo|\s+direito)?|goleiro|zagueiro|meia|volante|atacante|tecnico)\s+do\s+(.+)$", category_name.strip(), re.IGNORECASE)
-        if match:
-            target_pos = normalize_text(match.group(1))
-            target_club = normalize_text(match.group(2))
-            target_club = CLUB_ALIASES.get(target_club, target_club)
-            return self._validate_player_club_position(norm_ans, raw_ans, target_club, target_pos, letter)
+        else:
+            match = re.search(r"^(lateral(?:\s+esquerdo|\s+direito)?|goleiro|zagueiro|meia|volante|atacante|tecnico)\s+do\s+(.+)$", category_name.strip(), re.IGNORECASE)
+            if match:
+                target_pos = normalize_text(match.group(1))
+                target_club = normalize_text(match.group(2))
+                target_club = CLUB_ALIASES.get(target_club, target_club)
+                res = self._validate_player_club_position(norm_ans, raw_ans, target_club, target_pos, letter)
+            else:
+                # Categoria Genérica: Jogador / Craque
+                res = self._validate_generic_player(norm_ans, raw_ans, letter)
 
-        # Categoria Genérica: Jogador / Craque
-        return self._validate_generic_player(norm_ans, raw_ans, letter)
+        return self._enrich_result_metrics(res, raw_ans, norm_ans)
+
+    def _enrich_result_metrics(self, res: dict, raw_ans: str, norm_ans: str) -> dict:
+        """Calcula percentual de acerto e similaridade do nome para auditoria pós-jogo."""
+        if not res:
+            res = {"valid": False, "points": 0, "reason": "Resposta não avaliada.", "answer": raw_ans}
+
+        if not res.get("valid"):
+            res["accuracy_pct"] = 0
+            res["matched_official"] = res.get("matched_official", "-")
+            res["longest_sequence"] = 0
+            return res
+
+        matched = res.get("matched_official")
+        if not matched:
+            m = re.search(r"(?:Golaço(?: confirmado pelo VAR)?!|Excelente!|Válido!)\s+([^(.,]+?)(?:\s+(?:é um|atuou|defendeu|comanda|foi|adicionado)|[.,(]|$)", res.get("reason", ""))
+            matched = m.group(1).strip() if m else raw_ans
+
+        norm_b = normalize_text(matched)
+        if norm_ans == norm_b or norm_ans in norm_b.split() or norm_b in norm_ans.split():
+            pct = 100
+            longest = len(norm_ans)
+        else:
+            matcher = difflib.SequenceMatcher(None, norm_ans, norm_b)
+            ratio = matcher.ratio()
+            match = matcher.find_longest_match(0, len(norm_ans), 0, len(norm_b))
+            longest = match.size
+
+            # Avalia similaridade máxima com palavras individuais do nome
+            words = norm_b.split()
+            best_w = ratio
+            for w in words:
+                best_w = max(best_w, difflib.SequenceMatcher(None, norm_ans, w).ratio())
+            pct = max(int(round(max(ratio, best_w) * 100)), 80)
+
+        res["accuracy_pct"] = min(100, pct)
+        res["matched_official"] = matched
+        res["longest_sequence"] = longest
+        return res
 
     # -------------------------------------------------------------
     # VALIDAÇÃO DE JOGADOR POR SETOR (Linha Defensiva, Meiuca, Ataque)

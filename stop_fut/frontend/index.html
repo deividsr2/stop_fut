@@ -122,7 +122,10 @@
           <h2 id="lobby-room-name">Sala do Craque</h2>
           <span class="room-info-pill" id="lobby-room-info">5 Rodadas • 60s • Aberta</span>
         </div>
-        <button id="btn-leave-room" class="btn-secondary-sm">Sair da Sala 🚪</button>
+        <div class="lobby-header-actions">
+          <button id="btn-room-ranking-lobby" class="btn-secondary-sm">🏆 Placar da Sala</button>
+          <button id="btn-leave-room" class="btn-secondary-sm">Sair da Sala 🚪</button>
+        </div>
       </div>
 
       <div class="share-link-box">
@@ -326,6 +329,83 @@
       </div>
     </div>
   </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PÓDIO FINAL DOS CAMPEÕES (FIM DE JOGO)             -->
+  <!-- ======================================================== -->
+  <div id="modal-podium" class="modal-overlay hidden">
+    <div class="modal-dialog modal-podium-dialog">
+      <div class="podium-header">
+        <div class="confetti-icon">🎉 ⚽ 🏆</div>
+        <h2>FIM DE PARTIDA!</h2>
+        <p class="podium-subtitle">Confira o Pódio dos Craques da Sala</p>
+      </div>
+
+      <div class="podium-stage-container" id="podium-stage-container">
+        <!-- Pódio 3D (1º, 2º e 3º) gerado via JS -->
+      </div>
+
+      <div class="podium-full-scoreboard">
+        <h4>Classificação Geral da Partida</h4>
+        <div class="scoreboard-scroll" id="podium-scoreboard-list"></div>
+      </div>
+
+      <div class="podium-actions-footer">
+        <button id="btn-open-audit" class="btn-stopots btn-audit">
+          🔍 ANALISAR RESPOSTAS (AUDITORIA)
+        </button>
+        <button id="btn-podium-lobby" class="btn-stopots btn-play">
+          🚪 VOLTAR AO LOBBY
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: AUDITORIA E ANÁLISE DE RESPOSTAS (% DE ACURÁCIA)  -->
+  <!-- ======================================================== -->
+  <div id="modal-audit" class="modal-overlay hidden">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-header">
+        <h3>🔍 Auditoria das Respostas da Partida</h3>
+        <button class="btn-close-modal" data-close="modal-audit">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="audit-summary-strip" id="audit-summary-strip">
+          <!-- Resumo: Acurácia média, total de respostas, etc. -->
+        </div>
+        <p class="audit-explainer-text">
+          💡 <strong>Critério do VAR com Tolerância Fonética/Ortográfica:</strong> Respostas com escrita similar (ex: <em>anceloti</em> vs <em>Carlo Ancelotti</em>) são aceitas caso atinjam +80% de similaridade ou longa sequência de letras idênticas.
+        </p>
+        <div class="audit-rounds-container" id="audit-rounds-container">
+          <!-- Rodadas e respostas geradas via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary-sm" data-close="modal-audit">Fechar Auditoria</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: RANKING DA SALA                                   -->
+  <!-- ======================================================== -->
+  <div id="modal-room-ranking" class="modal-overlay hidden">
+    <div class="modal-dialog modal-sm">
+      <div class="modal-header">
+        <h3 id="room-ranking-modal-title">🏆 Placar da Sala</h3>
+        <button class="btn-close-modal" data-close="modal-room-ranking">✖</button>
+      </div>
+      <div class="modal-body">
+        <div class="ranking-global-list" id="room-ranking-items">
+          <!-- Jogadores da sala carregados via JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container de Toasts Flutuantes -->
+  <div id="toast-container" class="toast-container"></div>
 
   <!-- Rodapé Estilo StopotS -->
   <footer class="footer-strip">

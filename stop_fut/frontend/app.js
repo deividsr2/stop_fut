@@ -7,6 +7,30 @@
 // Se configurado para AWS Lambda Function URL, usa a URL remota, senão relativo
 const API_BASE = window.LAMBDA_API_URL || "";
 
+// --- Notificações Arcade (Substituem o alert nativo do navegador) ---
+function showToast(type, message) {
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const icons = {
+    success: "✅",
+    error: "❌",
+    info: "ℹ️",
+    warning: "⚠️"
+  };
+  const box = document.createElement("div");
+  box.className = `toast-box toast-${type || "info"}`;
+  box.innerHTML = `
+    <span style="font-size: 1.25rem;">${icons[type] || "⚽"}</span>
+    <span>${message}</span>
+  `;
+  container.appendChild(box);
+  setTimeout(() => {
+    box.style.opacity = "0";
+    box.style.transform = "translateX(50px)";
+    setTimeout(() => box.remove(), 300);
+  }, 4000);
+}
+
 // --- Gerador de Nomes & Avatares ---
 const FOOTBALL_NICKNAMES = [
   "Craque", "Camisa10", "Goleador", "Paredao", "Artilheiro",
@@ -182,7 +206,7 @@ function initActions() {
         enterRoom(data.room_id);
       }
     } catch (e) {
-      alert("Erro ao buscar partida rápida: " + e.message);
+      showToast("error", "Erro ao buscar partida rápida: " + e.message);
     }
   });
 
@@ -223,7 +247,7 @@ function initActions() {
       closeModal("modal-create-room");
       enterRoom(room.id);
     } catch (e) {
-      alert("Erro ao criar sala: " + e.message);
+      showToast("error", "Erro ao criar sala: " + e.message);
     }
   });
 
@@ -246,6 +270,13 @@ function initActions() {
     leaveRoom();
   });
 
+  // Ver Placar da Sala (dentro do Lobby)
+  document.getElementById("btn-room-ranking-lobby").addEventListener("click", () => {
+    if (currentRoomId) {
+      openRoomRankingModal(currentRoomId, currentRoomState ? currentRoomState.name : "Sala");
+    }
+  });
+
   // Host Inicia Jogo
   document.getElementById("btn-start-game").addEventListener("click", async () => {
     try {
@@ -255,7 +286,7 @@ function initActions() {
         body: JSON.stringify({ room_id: currentRoomId, user_id: currentUser.id })
       });
     } catch (e) {
-      alert("Erro ao iniciar jogo: " + e.message);
+      showToast("error", "Erro ao iniciar jogo: " + e.message);
     }
   });
 
@@ -282,7 +313,7 @@ function initActions() {
         body: JSON.stringify({ room_id: currentRoomId, user_id: currentUser.id })
       });
     } catch (e) {
-      alert("Erro ao avançar rodada: " + e.message);
+      showToast("error", "Erro ao avançar rodada: " + e.message);
     }
   });
 
@@ -291,7 +322,18 @@ function initActions() {
     const input = document.getElementById("share-link-input");
     input.select();
     navigator.clipboard.writeText(input.value);
-    alert("Link copiado! Envie para seus amigos entrarem na sala.");
+    showToast("success", "Link copiado! Envie para seus amigos entrarem.");
+  });
+
+  // Botão Abrir Auditoria Pós-Jogo (no Pódio)
+  document.getElementById("btn-open-audit").addEventListener("click", () => {
+    openAuditModal(currentRoomId);
+  });
+
+  // Botão Voltar ao Lobby (no Pódio)
+  document.getElementById("btn-podium-lobby").addEventListener("click", () => {
+    closeModal("modal-podium");
+    leaveRoom();
   });
 }
 
@@ -321,7 +363,10 @@ async function loadRoomsList() {
           <div class="room-list-name">${r.name}</div>
           <div class="room-list-meta">Host: ${r.host_name} • ${r.players_count}/${r.max_players} Jogadores • ${r.round_time}s</div>
         </div>
-        <button class="btn-join-room" onclick="promptJoinRoom('${r.id}', ${r.is_private})">ENTRAR</button>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <button class="btn-secondary-sm" onclick="openRoomRankingModal('${r.id}', '${r.name}')">🏆 Placar</button>
+          <button class="btn-join-room" onclick="promptJoinRoom('${r.id}', ${r.is_private})">ENTRAR</button>
+        </div>
       `;
       container.appendChild(card);
     });
@@ -355,7 +400,7 @@ async function enterRoom(roomId, password = "") {
     });
     const data = await res.json();
     if (data.error) {
-      alert(data.error);
+      showToast("error", data.error);
       return;
     }
 
@@ -377,7 +422,7 @@ async function enterRoom(roomId, password = "") {
     roomPollInterval = setInterval(pollRoomState, 1500);
     pollRoomState();
   } catch (e) {
-    alert("Erro ao entrar na sala: " + e.message);
+    showToast("error", "Erro ao entrar na sala: " + e.message);
   }
 }
 
@@ -600,12 +645,222 @@ function renderRoomScoreboard(players) {
 
 function openPodiumScreen(players) {
   closeModal("modal-results");
+  if (roomPollInterval) clearInterval(roomPollInterval);
+
+  const stage = document.getElementById("podium-stage-container");
+  stage.innerHTML = "";
+
   const p1 = players[0] || { name: "Ninguém", avatar: "⚽", score: 0 };
   const p2 = players[1] || null;
   const p3 = players[2] || null;
 
-  alert(`🏆 FIM DE PARTIDA! PÓDIO DOS CRAQUES:\n🥇 1º Lugar: ${p1.name} (${p1.score} pts)\n${p2 ? `🥈 2º Lugar: ${p2.name} (${p2.score} pts)\n` : ""}${p3 ? `🥉 3º Lugar: ${p3.name} (${p3.score} pts)` : ""}`);
-  leaveRoom();
+  // 2º Lugar (Esquerda)
+  if (p2) {
+    const col2 = document.createElement("div");
+    col2.className = "podium-column col-2nd";
+    col2.innerHTML = `
+      <div class="podium-avatar-wrapper">
+        <div class="podium-avatar">${p2.avatar}</div>
+      </div>
+      <div class="podium-player-name">${p2.name}</div>
+      <div class="podium-player-score">${p2.score} pts</div>
+      <div class="podium-block">2º</div>
+    `;
+    stage.appendChild(col2);
+  }
+
+  // 1º Lugar (Centro - Ouro & Coroa)
+  const col1 = document.createElement("div");
+  col1.className = "podium-column col-1st";
+  col1.innerHTML = `
+    <div class="podium-avatar-wrapper">
+      <span class="podium-crown">👑</span>
+      <div class="podium-avatar">${p1.avatar}</div>
+    </div>
+    <div class="podium-player-name">${p1.name}</div>
+    <div class="podium-player-score">${p1.score} pts</div>
+    <div class="podium-block">1º</div>
+  `;
+  stage.appendChild(col1);
+
+  // 3º Lugar (Direita)
+  if (p3) {
+    const col3 = document.createElement("div");
+    col3.className = "podium-column col-3rd";
+    col3.innerHTML = `
+      <div class="podium-avatar-wrapper">
+        <div class="podium-avatar">${p3.avatar}</div>
+      </div>
+      <div class="podium-player-name">${p3.name}</div>
+      <div class="podium-player-score">${p3.score} pts</div>
+      <div class="podium-block">3º</div>
+    `;
+    stage.appendChild(col3);
+  }
+
+  // Tabela completa com todos os participantes
+  const list = document.getElementById("podium-scoreboard-list");
+  list.innerHTML = "";
+  players.forEach((p, idx) => {
+    const row = document.createElement("div");
+    row.className = "score-player-item";
+    const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+    row.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-weight: 800; color: #ffcc00; width: 24px;">${medal}</span>
+        <span>${p.avatar}</span>
+        <strong>${p.name} ${p.id === currentUser.id ? "(Você)" : ""}</strong>
+      </div>
+      <strong style="color: #ffea79;">${p.score} pts</strong>
+    `;
+    list.appendChild(row);
+  });
+
+  openModal("modal-podium");
+}
+
+// ========================================================
+// AUDITORIA PÓS-JOGO (ANÁLISE DE RESPOSTAS & ACURÁCIA)
+// ========================================================
+async function openAuditModal(roomId) {
+  const targetId = roomId || currentRoomId;
+  if (!targetId) {
+    showToast("warning", "Nenhuma partida para auditar.");
+    return;
+  }
+  const strip = document.getElementById("audit-summary-strip");
+  const container = document.getElementById("audit-rounds-container");
+  strip.innerHTML = "<p class='text-muted'>Carregando auditoria...</p>";
+  container.innerHTML = "";
+  openModal("modal-audit");
+
+  try {
+    const res = await fetch(`${API_BASE}/api/rooms/audit?room_id=${targetId}`);
+    const data = await res.json();
+    if (data.error) {
+      showToast("error", data.error);
+      return;
+    }
+
+    strip.innerHTML = `
+      <div class="audit-stat-card">
+        <div class="audit-stat-val">${data.total_rounds}</div>
+        <div class="audit-stat-label">Rodadas Auditadas</div>
+      </div>
+      <div class="audit-stat-card">
+        <div class="audit-stat-val">${data.total_answers}</div>
+        <div class="audit-stat-label">Respostas Avaliadas</div>
+      </div>
+      <div class="audit-stat-card">
+        <div class="audit-stat-val" style="color: #10b981;">${data.avg_accuracy}%</div>
+        <div class="audit-stat-label">Acurácia Média Geral</div>
+      </div>
+    `;
+
+    const rounds = data.rounds_history || [];
+    if (rounds.length === 0) {
+      container.innerHTML = "<p class='text-muted text-center'>Nenhum histórico registrado nesta partida.</p>";
+      return;
+    }
+
+    rounds.forEach(r => {
+      const roundCard = document.createElement("div");
+      roundCard.className = "audit-round-block";
+
+      let answersHtml = "";
+      const subs = r.submissions || {};
+      for (const [uid, sub] of Object.entries(subs)) {
+        const pName = sub.player_name || uid;
+        const results = sub.results || [];
+        results.forEach(item => {
+          const acc = item.accuracy_pct || (item.valid ? 100 : 0);
+          const badgeClass = acc >= 90 ? "acc-perfect" : acc >= 80 ? "acc-high" : "acc-low";
+          const official = item.matched_official || "-";
+          answersHtml += `
+            <div class="audit-item-row">
+              <div>
+                <strong>${item.name}</strong><br/>
+                <small style="color: #c4b5fd;">👤 ${pName}</small>
+              </div>
+              <div>
+                <span style="font-weight: 700;">"${item.answer || "-"}"</span>
+              </div>
+              <div style="color: #93c5fd;">
+                ${official}
+              </div>
+              <div>
+                <span class="accuracy-badge ${badgeClass}">${acc}% similar</span>
+              </div>
+              <div style="font-weight: 700; color: ${item.valid ? "#10b981" : "#ef4444"};">
+                ${item.valid ? `+${item.points} pts` : "0 pts"}
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      roundCard.innerHTML = `
+        <div class="audit-round-header">
+          <strong>Rodada ${r.round} (Letra '${r.letter}')</strong>
+          <span style="color: #c4b5fd; font-size: 0.85rem;">${r.categories ? r.categories.length : 5} Categorias</span>
+        </div>
+        <div class="audit-items-grid">
+          <div style="display: grid; grid-template-columns: 2fr 1.5fr 1.5fr 90px 70px; font-size: 0.75rem; color: #9d8ec2; padding: 0 12px; font-weight: 700;">
+            <span>CATEGORIA & JOGADOR</span>
+            <span>RESPOSTA DIGITADA</span>
+            <span>BASE OFICIAL DO VAR</span>
+            <span>ACURÁCIA</span>
+            <span>DECISÃO</span>
+          </div>
+          ${answersHtml || "<p class='text-muted'>Sem respostas gravadas nesta rodada.</p>"}
+        </div>
+      `;
+      container.appendChild(roundCard);
+    });
+  } catch (e) {
+    showToast("error", "Erro ao carregar auditoria: " + e.message);
+  }
+}
+
+// ========================================================
+// RANKING DA SALA (PREVIEW ANTES E DURANTE A PARTIDA)
+// ========================================================
+async function openRoomRankingModal(roomId, roomName) {
+  const title = document.getElementById("room-ranking-modal-title");
+  const list = document.getElementById("room-ranking-items");
+
+  title.textContent = `🏆 Placar: ${roomName || "Sala"}`;
+  list.innerHTML = "<p class='text-muted'>Carregando classificação...</p>";
+  openModal("modal-room-ranking");
+
+  try {
+    const res = await fetch(`${API_BASE}/api/rooms/ranking?room_id=${roomId}`);
+    const data = await res.json();
+    const ranking = data.ranking || [];
+
+    list.innerHTML = "";
+    if (ranking.length === 0) {
+      list.innerHTML = "<p class='text-muted text-center'>Nenhum jogador pontuou nesta sala ainda.</p>";
+      return;
+    }
+
+    ranking.forEach((p, idx) => {
+      const row = document.createElement("div");
+      row.className = "rank-row";
+      const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `#${idx + 1}`;
+      row.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span class="rank-pos">${medal}</span>
+          <span style="font-size: 1.4rem;">${p.avatar || "⚽"}</span>
+          <strong>${p.name} ${p.id === currentUser.id ? "(Você)" : ""}</strong>
+        </div>
+        <strong style="color: #ffea79;">${p.score} pts</strong>
+      `;
+      list.appendChild(row);
+    });
+  } catch (e) {
+    list.innerHTML = "<p class='text-muted'>Erro ao carregar classificação da sala.</p>";
+  }
 }
 
 // ========================================================

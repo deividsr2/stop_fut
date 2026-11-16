@@ -1049,3 +1049,351 @@ body {
   gap: 10px;
   justify-content: center;
 }
+
+/* ======================================================== */
+/* CABEÇALHO DO LOBBY DA SALA                               */
+/* ======================================================== */
+.lobby-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ======================================================== */
+/* PÓDIO FINAL DOS CAMPEÕES (MODAL PÓDIO 3D)                */
+/* ======================================================== */
+.modal-podium-dialog {
+  max-width: 620px;
+  background: linear-gradient(180deg, #371b68 0%, #1a0836 100%);
+  border: 4px solid #ffcc00;
+  box-shadow: 0 0 40px rgba(255, 204, 0, 0.4);
+  text-align: center;
+  padding: 24px;
+}
+
+.podium-header .confetti-icon {
+  font-size: 2.2rem;
+  margin-bottom: 4px;
+  animation: bounce 1.5s infinite;
+}
+
+.podium-header h2 {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  color: #ffcc00;
+  margin: 0;
+  text-shadow: 0 4px 0 #997700;
+}
+
+.podium-subtitle {
+  color: #c4b5fd;
+  font-size: 0.95rem;
+  margin-top: 4px;
+}
+
+/* Degraus do Pódio 3D */
+.podium-stage-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+  margin: 28px 0 20px;
+  min-height: 220px;
+}
+
+.podium-column {
+  flex: 1;
+  max-width: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.podium-avatar-wrapper {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.podium-crown {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+}
+
+.podium-avatar {
+  font-size: 2.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+}
+
+.podium-player-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.podium-player-score {
+  font-size: 0.85rem;
+  color: #ffcc00;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.podium-block {
+  width: 100%;
+  border-radius: 14px 14px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 900;
+  color: #fff;
+  box-shadow: inset 0 6px 0 rgba(255, 255, 255, 0.3), 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 1º Lugar (Ouro) */
+.col-1st {
+  order: 2;
+}
+.col-1st .podium-avatar {
+  border-color: #ffd700;
+  box-shadow: 0 0 16px #ffd700;
+}
+.col-1st .podium-block {
+  height: 140px;
+  background: linear-gradient(180deg, #fbbf24 0%, #b45309 100%);
+  border: 2px solid #fef08a;
+}
+
+/* 2º Lugar (Prata) */
+.col-2nd {
+  order: 1;
+}
+.col-2nd .podium-avatar {
+  border-color: #cbd5e1;
+}
+.col-2nd .podium-block {
+  height: 100px;
+  background: linear-gradient(180deg, #94a3b8 0%, #475569 100%);
+  border: 2px solid #e2e8f0;
+}
+
+/* 3º Lugar (Bronze) */
+.col-3rd {
+  order: 3;
+}
+.col-3rd .podium-avatar {
+  border-color: #f97316;
+}
+.col-3rd .podium-block {
+  height: 75px;
+  background: linear-gradient(180deg, #ea580c 0%, #7c2d12 100%);
+  border: 2px solid #fed7aa;
+}
+
+/* Tabela Resumida do Pódio */
+.podium-full-scoreboard {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.podium-full-scoreboard h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.9rem;
+  color: #c4b5fd;
+  text-transform: uppercase;
+}
+
+.podium-actions-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-audit {
+  background: linear-gradient(180deg, #06b6d4 0%, #0891b2 100%);
+  color: #fff;
+  border-bottom: 5px solid #0e7490 !important;
+}
+.btn-audit:hover {
+  background: linear-gradient(180deg, #22d3ee 0%, #06b6d4 100%);
+}
+
+/* ======================================================== */
+/* MODAL DE AUDITORIA DE RESPOSTAS (% DE ACURÁCIA)          */
+/* ======================================================== */
+.modal-lg {
+  max-width: 780px !important;
+}
+
+.audit-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.audit-stat-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px;
+  text-align: center;
+}
+
+.audit-stat-val {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #ffcc00;
+}
+
+.audit-stat-label {
+  font-size: 0.75rem;
+  color: #c4b5fd;
+}
+
+.audit-explainer-text {
+  font-size: 0.85rem;
+  background: rgba(16, 185, 129, 0.15);
+  border-left: 4px solid #10b981;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  color: #e2e8f0;
+}
+
+.audit-round-block {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.audit-round-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.audit-round-header strong {
+  font-family: var(--font-display);
+  color: #ffcc00;
+}
+
+.audit-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.audit-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1.5fr 90px 70px;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  gap: 8px;
+}
+
+.accuracy-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 800;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+.acc-perfect {
+  background: #059669;
+  color: #fff;
+}
+
+.acc-high {
+  background: #0284c7;
+  color: #fff;
+}
+
+.acc-low {
+  background: #dc2626;
+  color: #fff;
+}
+
+/* ======================================================== */
+/* TOASTS FLUTUANTES (SUBSTITUEM ALERT NATIVO)              */
+/* ======================================================== */
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-box {
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 380px;
+  background: #2a144e;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-left: 6px solid #ffcc00;
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: slideInRight 0.3s ease-out;
+  transition: opacity 0.3s, transform 0.3s;
+}
+
+.toast-box.toast-success {
+  border-left-color: #10b981;
+}
+
+.toast-box.toast-error {
+  border-left-color: #ef4444;
+}
+
+.toast-box.toast-info {
+  border-left-color: #3b82f6;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

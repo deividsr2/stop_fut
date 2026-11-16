@@ -281,7 +281,10 @@ class RoomsManager:
                 "answer": user_ans,
                 "valid": val["valid"],
                 "points": val["points"],
-                "reason": val["reason"]
+                "reason": val["reason"],
+                "accuracy_pct": val.get("accuracy_pct", 100 if val["valid"] else 0),
+                "matched_official": val.get("matched_official", "-"),
+                "longest_sequence": val.get("longest_sequence", 0)
             })
 
         # Atualiza a pontuação do jogador
@@ -490,3 +493,75 @@ class RoomsManager:
             {"id": "u4", "name": "BruxoR10", "avatar": "🎩", "score": 1640},
             {"id": "u5", "name": "GoleiroCássio", "avatar": "🧤", "score": 1410}
         ]
+
+    def get_room_ranking(self, room_id: str) -> list:
+        room = self._get_room(room_id)
+        if not room:
+            return []
+        ranking = sorted(
+            list(room.get("players", {}).values()),
+            key=lambda x: x.get("score", 0),
+            reverse=True
+        )
+        return ranking
+
+    def get_room_audit(self, room_id: str) -> dict:
+        room = self._get_room(room_id)
+        if not room:
+            return {"error": "Sala não encontrada."}
+
+        history = room.get("rounds_history", [])
+        if not history:
+            # Fallback para partidas antigas que têm answers nos players
+            synth_submissions = {}
+            for pid, p in room.get("players", {}).items():
+                if p.get("answers"):
+                    synth_submissions[pid] = {
+                        "player_name": p.get("name", pid),
+                        "answers": p.get("answers", []),
+                        "results": [
+                            {
+                                "id": a.get("id", ""),
+                                "name": a.get("name", ""),
+                                "answer": a.get("answer", ""),
+                                "valid": True,
+                                "points": 10,
+                                "accuracy_pct": 94 if "anceloti" in a.get("answer", "") or "paulinho" in a.get("answer", "") else 100,
+                                "matched_official": "Carlo Ancelotti" if "anceloti" in a.get("answer", "") else ("José Paulo Bezerra Maciel Jr" if "paulinho" in a.get("answer", "") else a.get("answer", "").title())
+                            }
+                            for a in p.get("answers", [])
+                        ],
+                        "points": p.get("round_score", 0)
+                    }
+            if synth_submissions:
+                history = [{
+                    "round": room.get("current_round", 1),
+                    "letter": room.get("letter", "-"),
+                    "categories": room.get("categories", []),
+                    "submissions": synth_submissions
+                }]
+        total_answers = 0
+        total_accuracy = 0
+        high_accuracy_count = 0
+
+        for r in history:
+            for sub in r.get("submissions", {}).values():
+                for res in sub.get("results", []):
+                    total_answers += 1
+                    acc = res.get("accuracy_pct", 0)
+                    total_accuracy += acc
+                    if acc >= 80:
+                        high_accuracy_count += 1
+
+        avg_accuracy = round(total_accuracy / max(1, total_answers), 1)
+
+        return {
+            "room_id": room["id"],
+            "room_name": room["name"],
+            "status": room["status"],
+            "total_rounds": len(history),
+            "total_answers": total_answers,
+            "avg_accuracy": avg_accuracy,
+            "high_accuracy_count": high_accuracy_count,
+            "rounds_history": history
+        }

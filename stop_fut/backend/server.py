@@ -141,6 +141,17 @@ def handle_api_request(method: str, path: str, query_params: dict, body_data: di
                 return 404, state
             return 200, state
 
+        if path == "/api/rooms/ranking":
+            room_id = query_params.get("room_id", [""])[0] if isinstance(query_params.get("room_id"), list) else query_params.get("room_id", "")
+            return 200, {"room_id": room_id, "ranking": rooms_mgr.get_room_ranking(room_id)}
+
+        if path == "/api/rooms/audit":
+            room_id = query_params.get("room_id", [""])[0] if isinstance(query_params.get("room_id"), list) else query_params.get("room_id", "")
+            res = rooms_mgr.get_room_audit(room_id)
+            if "error" in res:
+                return 404, res
+            return 200, res
+
         if path == "/api/ranking":
             return 200, {"ranking": rooms_mgr.get_global_ranking()}
 
